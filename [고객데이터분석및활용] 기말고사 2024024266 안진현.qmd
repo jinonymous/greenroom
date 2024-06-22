@@ -1,0 +1,69 @@
+---
+title: "[창업실무:고객데이터]2024024266 안진현 기말고사"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+```{r}
+#| label: lotto
+#| warning: false
+#| echo: false
+
+library(httr)
+library(rvest)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+
+url <- 'https://www.dhlottery.co.kr/gameResult.do?method=byWin'  
+lotto_numbers <- c()
+
+for (i in 1010:1015) {
+ 
+  Sys.sleep(2)
+
+  data_lotto <- POST(
+    url, 
+    body = list(
+      drwNo = as.character(i),
+      dwrNoList = as.character(i)
+    )
+  )
+
+  data_lotto_html <- data_lotto %>% 
+    content(as = "text") %>% 
+    read_html()
+  
+  numbers <- data_lotto_html %>%
+    html_nodes('.num.win') %>%
+    html_text() %>%
+    str_extract_all('\\d+') %>%
+    unlist() %>%
+    as.integer()
+  
+  lotto_numbers <- c(lotto_numbers, numbers)
+}
+
+lotto_df <- data.frame(number = lotto_numbers)
+lotto_count <- lotto_df %>%
+  group_by(number) %>%
+  summarise(count = n())
+
+all_numbers <- data.frame(number = 1:45)
+lotto_count <- left_join(all_numbers, lotto_count, by = "number")
+lotto_count$count[is.na(lotto_count$count)] <- 0
+
+ggplot(lotto_count, aes(x = factor(number), y = count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Lotto Number Frequency", x = "Lotto Number", y = "Count") +
+  scale_x_discrete(breaks = 1:45) +
+  theme_minimal()
+
+```
