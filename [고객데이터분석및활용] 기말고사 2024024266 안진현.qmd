@@ -1,0 +1,80 @@
+---
+title: "[창업실무:고객데이터]2024024266 안진현 기말고사"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+
+```{r}
+#| label: lotto
+#| warning: false
+#| echo: false
+
+library(httr)
+library(rvest)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+# URL 설정
+url <- 'https://www.dhlottery.co.kr/gameResult.do?method=byWin'  # 실제 URL로 변경하세요.
+# 결과를 저장할 리스트 초기화
+lotto_numbers <- c()
+
+# 반복문을 사용하여 1010에서 1015까지 데이터를 가져옴
+for (i in 1010:1015) {
+  # 2초 지연
+  Sys.sleep(2)
+
+  # POST 요청 보내기
+  data_lotto <- POST(
+    url, 
+    body = list(
+      drwNo = as.character(i),
+      dwrNoList = as.character(i)
+    )
+  )
+  
+  # HTML 내용 파싱
+  data_lotto_html <- data_lotto %>% 
+    content(as = "text") %>% 
+    read_html()
+  
+  # 데이터 추출 및 저장
+  numbers <- data_lotto_html %>%
+    html_nodes('.num.win') %>%
+    html_text() %>%
+    str_extract_all('\\d+') %>%
+    unlist() %>%
+    as.integer()
+  
+  lotto_numbers <- c(lotto_numbers, numbers)
+}
+
+# 번호별 당첨 횟수 계산
+lotto_df <- data.frame(number = lotto_numbers)
+lotto_count <- lotto_df %>%
+  group_by(number) %>%
+  summarise(count = n())
+
+# 모든 번호 포함한 데이터 프레임 생성
+all_numbers <- data.frame(number = 1:45)
+lotto_count <- left_join(all_numbers, lotto_count, by = "number")
+lotto_count$count[is.na(lotto_count$count)] <- 0
+
+# 막대그래프 시각화
+ggplot(lotto_count, aes(x = factor(number), y = count)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Lotto Number Frequency", x = "Lotto Number", y = "Count") +
+  scale_x_discrete(breaks = 1:45) +
+  theme_minimal()
+
+```
+
+
